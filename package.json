@@ -1,0 +1,26 @@
+{
+    "name": "node-here",
+    "version": "1.1.0",
+    "main": "./here",
+    "description": "Here API wrapper for Node.js",
+    "author": {
+        "name": "Starchup Inc",
+        "email": "geoffroy@starchup.com",
+        "url": "http://starchup.com"
+    },
+    "keywords": [
+        "starchup"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+ssh://git@github.com/Starchup/node-here.git"
+    },
+    "engines": {
+        "node": ">= 0.10"
+    },
+    "readmeFilename": "README.md",
+    "bugs": {
+        "url": "https://github.com/Starchup/node-here/issues"
+    },
+    "homepage": "https://github.com/Starchup/node-here"
+}
