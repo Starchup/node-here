@@ -13,12 +13,12 @@ var here = new HERE(conf);
 describe('Customer Methods', function ()
 {
     var origin = {
-        lat: 52.5160,
-        lng: 13.3779
+        lat: 40.7480,
+        lng: -73.9862
     };
     var destination = {
-        lat: 52.5206,
-        lng: 13.3862
+        lat: 40.7558,
+        lng: -73.9869
     };
     var mode = 'fastest;car;traffic:enabled';
     var departure = null;
@@ -27,7 +27,22 @@ describe('Customer Methods', function ()
     {
         here.Route.Calculate(origin, destination, mode, departure).then(function (res)
         {
-            expect(res).to.be.an('array');
+            expect(res).to.be.an('object');
+
+            done();
+        }).catch(done);
+    });
+
+    var waypoint1 = {
+        lat: 40.7500,
+        lng: -73.9933
+    };
+
+    it('should get a car route from A to B via C', function (done)
+    {
+        here.Route.Calculate(origin, destination, mode, departure, [waypoint1]).then(function (res)
+        {
+            expect(res).to.be.an('object');
 
             done();
         }).catch(done);

@@ -34,13 +34,13 @@ var HERE = function (config)
             {
                 var response = JSON.parse(res);
                 if (!response || !response.response) throw new Error('No response');
-                return response.response.route;
+                return response.response.route[0];
             });
         }
     };
 
     self.Route = {
-        Calculate: function (origin, destination, mode, departure)
+        Calculate: function (origin, destination, mode, departure, waypoints)
         {
             self.Util.validateArgument(origin, 'origin');
             self.Util.validateArgument(destination, 'destination');
@@ -55,6 +55,15 @@ var HERE = function (config)
                 waypoint0: self.Util.coordinatesString(origin),
                 waypoint1: self.Util.coordinatesString(destination)
             };
+
+            if (waypoints && waypoints.length)
+            {
+                waypoints.forEach(function (waypoint, idx)
+                {
+                    query['waypoint' + String(idx + 1)] = self.Util.coordinatesString(waypoint);
+                });
+                query['waypoint' + String(waypoints.length + 1)] = self.Util.coordinatesString(destination);
+            }
 
             return self.Request.CreateRequest('GET', API_ROUTE, 'routing', 7.2, 'calculateroute', query);
         },
