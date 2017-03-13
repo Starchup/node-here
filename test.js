@@ -13,12 +13,12 @@ var here = new HERE(conf);
 describe('Customer Methods', function ()
 {
     var origin = {
-        lat: 40.7480,
-        lng: -73.9862
+        lat: 41.2800,
+        lng: -96.0042
     };
     var destination = {
-        lat: 40.7558,
-        lng: -73.9869
+        lat: 41.2939,
+        lng: -96.0206
     };
     var mode = 'fastest;car;traffic:enabled';
     var departure = null;
@@ -34,8 +34,8 @@ describe('Customer Methods', function ()
     });
 
     var waypoint1 = {
-        lat: 40.7500,
-        lng: -73.9933
+        lat: 41.2852,
+        lng: -96.0110
     };
 
     it('should get a car route from A to B via C', function (done)
