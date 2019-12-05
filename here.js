@@ -3,7 +3,8 @@
  */
 var request = require('request-promise');
 
-var API_ROUTE = 'https://route.cit.api.here.com';
+var ROUTE_API = 'https://route.cit.api.here.com';
+var GEO_API = 'https://geocoder.api.here.com';
 
 /**
  * Constructor
@@ -18,7 +19,6 @@ var HERE = function (config)
         {
             self.Util.validateArgument(httpMethod, 'httpMethod');
             self.Util.validateArgument(baseUrl, 'baseUrl');
-            self.Util.validateArgument(resource, 'resource');
             self.Util.validateArgument(method, 'method');
             self.Util.validateArgument(query, 'query');
 
@@ -33,8 +33,8 @@ var HERE = function (config)
             return request(options).then(function (res)
             {
                 var response = JSON.parse(res);
-                if (!response || !response.response) throw new Error('No response');
-                return response.response.route[0];
+                if (!response || !response.Response) throw new Error('No response');
+                return response.Response;
             });
         }
     };
@@ -65,8 +65,69 @@ var HERE = function (config)
                 query['waypoint' + String(waypoints.length + 1)] = self.Util.coordinatesString(destination);
             }
 
-            return self.Request.CreateRequest('GET', API_ROUTE, 'routing', 7.2, 'calculateroute', query);
+            return self.Request.CreateRequest('GET', ROUTE_API, 'routing', 7.2, 'calculateroute', query).then(function (response)
+            {
+                return response.route[0];
+            });
         },
+    };
+
+    self.Address = {
+        Geocode: function (address)
+        {
+            self.Util.validateArgument(address, 'address');
+            self.Util.validateArgument(address.street, 'street');
+            self.Util.validateArgument(address.city, 'city');
+            self.Util.validateArgument(address.zip, 'zip');
+
+            var addressArray = [];
+            addressArray.push(address.street.split(' ').join('+'));
+            addressArray.push(address.city.split(' ').join('+'));
+            if (address.state) addressArray.push(address.state.split(' ').join('+'));
+            addressArray.push(address.zip.split(' ').join('+'));
+
+            var addressString = addressArray.join('+');
+
+            return self.Request.CreateRequest('GET', GEO_API, null, 6.2, 'geocode', 'searchtext=' + addressString).then(function (response)
+            {
+                var locationData, addressData;
+                try
+                {
+                    locationData = response.View[0].Result[0].Location.DisplayPosition;
+                }
+                catch (e)
+                {
+                    throw new Error('Address could not be geocoded');
+                }
+                try
+                {
+                    addressData = response.View[0].Result[0].Location.Address;
+                }
+                catch (e)
+                {
+                    throw new Error('Address could not be found for geocoding');
+                }
+
+                if (!locationData) throw new Error('Address could not be geocoded');
+                if (!addressData) throw new Error('Address could not be found for geocoding');
+
+                return {
+                    location:
+                    {
+                        lat: locationData.Latitude,
+                        lng: locationData.Longitude
+                    },
+                    address:
+                    {
+                        street: addressData.Street,
+                        city: addressData.City,
+                        state: addressData.State,
+                        zip: addressData.PostalCode,
+                        country: addressData.Country
+                    }
+                };
+            });
+        }
     };
 
     self.Util = {
@@ -100,19 +161,15 @@ var HERE = function (config)
 
         buildUrl: function (resource, version, method, query)
         {
-            var url = '/' + resource;
+            var url = '';
+            if (resource) url = url + '/' + resource;
             if (version) url = url + '/' + version;
             if (method) url = url + '/' + method + '.json';
-            if (query && this.isObject(query) && Object.keys(query).length > 0)
-            {
-                var queryArray = Object.keys(query).map(function (key, index)
-                {
-                    return key + '=' + query[key];
-                });
-                url = url + '?' + queryArray.join('&');
-            }
-            url = url + '&app_id=' + self.CONFIG.AppId;
+
+            url = url + '?app_id=' + self.CONFIG.AppId;
             url = url + '&app_code=' + self.CONFIG.AppCode;
+
+            if (query) url = url + '&' + query;
 
             return url;
         }

@@ -10,7 +10,7 @@ var conf = {
 };
 var here = new HERE(conf);
 
-describe('Customer Methods', function ()
+describe('Route Integration', function ()
 {
     var origin = {
         lat: 41.2800,
@@ -27,6 +27,7 @@ describe('Customer Methods', function ()
     {
         here.Route.Calculate(origin, destination, mode, departure).then(function (res)
         {
+            console.log(res);
             expect(res).to.be.an('object');
 
             done();
@@ -41,6 +42,29 @@ describe('Customer Methods', function ()
     it('should get a car route from A to B via C', function (done)
     {
         here.Route.Calculate(origin, destination, mode, departure, [waypoint1]).then(function (res)
+        {
+            expect(res).to.be.an('object');
+
+            done();
+        }).catch(done);
+    });
+});
+
+describe('Geocoding Integration', function ()
+{
+    var address = {
+        "street": "4629 North Broadway Street",
+        "unit": null,
+        "city": "Chicago",
+        "state": "IL",
+        "zip": "60640",
+        "country": "US",
+        "timezone": "America/Chicago"
+    };
+
+    it('should geocode address', function (done)
+    {
+        here.Address.Geocode(address).then(function (res)
         {
             expect(res).to.be.an('object');
 
