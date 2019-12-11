@@ -3,7 +3,8 @@
  */
 var request = require('request-promise');
 
-var ROUTE_API = 'https://route.cit.api.here.com';
+var ROUTE_API = 'https://route.api.here.com';
+var MATRIX_API = 'https://matrix.api.here.com';
 var GEO_API = 'https://geocoder.api.here.com';
 
 /**
@@ -33,8 +34,11 @@ var HERE = function (config)
             return request(options).then(function (res)
             {
                 var response = JSON.parse(res);
-                if (!response || !response.Response) throw new Error('No response');
-                return response.Response;
+
+                if (response && response.response) return response.response;
+                if (response && response.Response) return response.Response;
+
+                throw new Error('No response');
             });
         }
     };
@@ -49,20 +53,21 @@ var HERE = function (config)
             if (!departure || departure === undefined) departure = new Date();
             else if (!self.Util.isDate(departure)) throw new Error('Departure must be a date');
 
-            var query = {
-                mode: mode,
-                departure: departure.toISOString(),
-                waypoint0: self.Util.coordinatesString(origin),
-                waypoint1: self.Util.coordinatesString(destination)
-            };
+            var query = 'mode=' + mode;
+            query += '&departure=' + departure.toISOString();
+            query += '&waypoint0=geo!' + self.Util.coordinatesString(origin);
 
             if (waypoints && waypoints.length)
             {
                 waypoints.forEach(function (waypoint, idx)
                 {
-                    query['waypoint' + String(idx + 1)] = self.Util.coordinatesString(waypoint);
+                    query += '&waypoint' + String(idx + 1) + '=geo!' + self.Util.coordinatesString(waypoint);
                 });
-                query['waypoint' + String(waypoints.length + 1)] = self.Util.coordinatesString(destination);
+                query += '&waypoint' + String(waypoints.length + 1) + '=geo!' + self.Util.coordinatesString(destination);
+            }
+            else
+            {
+                query += '&waypoint1=geo!' + self.Util.coordinatesString(destination);
             }
 
             return self.Request.CreateRequest('GET', ROUTE_API, 'routing', 7.2, 'calculateroute', query).then(function (response)
@@ -86,9 +91,9 @@ var HERE = function (config)
             if (address.state) addressArray.push(address.state.split(' ').join('+'));
             addressArray.push(address.zip.split(' ').join('+'));
 
-            var addressString = addressArray.join('+');
+            var query = 'searchtext=' + addressArray.join('+');
 
-            return self.Request.CreateRequest('GET', GEO_API, null, 6.2, 'geocode', 'searchtext=' + addressString).then(function (response)
+            return self.Request.CreateRequest('GET', GEO_API, null, 6.2, 'geocode', query).then(function (response)
             {
                 var locationData, addressData;
                 try

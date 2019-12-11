@@ -27,7 +27,6 @@ describe('Route Integration', function ()
     {
         here.Route.Calculate(origin, destination, mode, departure).then(function (res)
         {
-            console.log(res);
             expect(res).to.be.an('object');
 
             done();
