@@ -49,6 +49,34 @@ describe('Route Integration', function ()
     });
 });
 
+describe('Matrix Integration', function ()
+{
+    var point = {
+        lat: 41.2800,
+        lng: -96.0042
+    };
+    var destination1 = {
+        lat: 41.2939,
+        lng: -96.0206
+    };
+    var destination2 = {
+        lat: 41.2799,
+        lng: -96.0164
+    };
+    var mode = 'fastest;car;traffic:enabled';
+    var departure = null;
+
+    it('should get the closest destiation to point', function (done)
+    {
+        here.Distance.Calculate([point], [destination1, destination2], mode, departure).then(function (res)
+        {
+            expect(res).to.be.an('array');
+
+            done();
+        }).catch(done);
+    });
+});
+
 describe('Geocoding Integration', function ()
 {
     var address = {
