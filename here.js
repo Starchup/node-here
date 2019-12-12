@@ -4,7 +4,6 @@
 var request = require('request-promise');
 
 var ROUTE_API = 'https://route.api.here.com';
-var MATRIX_API = 'https://matrix.route.api.here.com';
 var GEO_API = 'https://geocoder.api.here.com';
 
 /**
@@ -44,41 +43,37 @@ var HERE = function (config)
     };
 
     self.Route = {
-        Calculate: function (origin, destination, mode, departure, waypoints)
+        CalculateTravelTimes: function (routeStops, departureTime, disableTraffic)
         {
-            self.Util.validateArgument(origin, 'origin');
-            self.Util.validateArgument(destination, 'destination');
-            self.Util.validateArgument(mode, 'mode');
-
-            if (!departure || departure === undefined) departure = new Date();
-            else if (!self.Util.isDate(departure)) throw new Error('Departure must be a date');
-
-            var query = 'mode=' + mode;
-            query += '&routeAttributes=summary,legs&legAttributes=length,travelTime,summary';
-            query += '&departure=' + departure.toISOString();
-
-            var originLabel = (origin.key ? origin.key : 'origin');
-            query += '&waypoint0=geo!' + self.Util.coordinatesString(origin) + ';;' + originLabel;
-
-            if (waypoints && waypoints.length) waypoints.forEach(function (waypoint, idx)
+            return self.Util.validateArrayProm(routeStops, 'routeStops',
             {
-                query += '&waypoint' + String(idx + 1) + '=geo!';
-                if (waypoint.stopOverDuration) query += 'stopOver,' + waypoint.stopOverDuration + '!';
-                query += self.Util.coordinatesString(waypoint) + ';;' + (waypoint.key ? waypoint.key : idx);
-            });
+                min: 2
+            }).then(function ()
+            {
+                if (!departureTime || departureTime === undefined) departureTime = new Date();
+                else if (!self.Util.isDate(departureTime)) throw new Error('Departure must be a date');
 
-            var idx = String((waypoints ? waypoints.length : 0) + 1);
-            var destinationLabel = (destination.key ? destination.key : 'destination');
-            query += '&waypoint' + idx + '=geo!' + self.Util.coordinatesString(destination) + ';;' + destinationLabel;
+                var query = 'mode=fastest;car;traffic:' + (disableTraffic ? 'disabled' : 'enabled');
+                query += '&routeAttributes=summary,legs&legAttributes=length,travelTime,summary';
+                query += '&departure=' + departureTime.toISOString();
 
-            return self.Request.CreateRequest('GET', ROUTE_API, 'routing', 7.2, 'calculateroute', query).then(function (response)
+                routeStops.forEach(function (stop, idx)
+                {
+                    var label = stop.key ? stop.key : idx;
+                    var coordinates = self.Util.coordinatesString(stop);
+
+                    query += '&waypoint' + String(idx) + '=geo!' + coordinates + ';;' + label;
+                });
+
+                return self.Request.CreateRequest('GET', ROUTE_API, 'routing', 7.2, 'calculateroute', query);
+            }).then(function (response)
             {
                 var route = response.route[0];
 
                 return {
                     travelTime: route.summary.travelTime,
                     distance: route.summary.distance,
-                    startTime: departure.getTime() / 1000,
+                    startTime: departureTime.getTime() / 1000,
                     legs: route.leg.map(function (l)
                     {
                         return {
@@ -100,37 +95,7 @@ var HERE = function (config)
                     })
                 };
             });
-        },
-    };
-
-    self.Distance = {
-        Calculate: function (origins, destinations, mode, departure)
-        {
-            self.Util.validateArgument(origins, 'origins');
-            self.Util.validateArgument(destinations, 'destinations');
-            self.Util.validateArgument(mode, 'mode');
-
-            if (!departure || departure === undefined) departure = new Date();
-            else if (!self.Util.isDate(departure)) throw new Error('Departure must be a date');
-
-            var query = 'mode=' + mode;
-            query += '&summaryAttributes=traveltime,distance';
-            query += '&departure=' + departure.toISOString();
-
-            origins.forEach(function (waypoint, idx)
-            {
-                query += '&start' + String(idx) + '=geo!' + self.Util.coordinatesString(waypoint);
-            });
-            destinations.forEach(function (waypoint, idx)
-            {
-                query += '&destination' + String(idx) + '=geo!' + self.Util.coordinatesString(waypoint);
-            });
-
-            return self.Request.CreateRequest('GET', MATRIX_API, 'routing', 7.2, 'calculatematrix', query).then(function (response)
-            {
-                return response.matrixEntry;
-            });
-        },
+        }
     };
 
     self.Address = {
@@ -198,6 +163,36 @@ var HERE = function (config)
             {
                 throw new Error('Required argument missing: ' + name);
             }
+        },
+
+        validateArray: function (arg, name, options)
+        {
+            self.Util.validateArgument(arg, name);
+
+            if (arg.length < 1)
+            {
+                throw new Error('Required argument missing data: ' + name);
+            }
+            if (options.min && arg.length < options.min)
+            {
+                throw new Error('Argument missing data (' + options.min + ' required, ' + arg.length + ' passed): ' + name);
+            }
+        },
+
+        validateArgumentProm: function (arg, name)
+        {
+            return Promise.resolve().then(function ()
+            {
+                self.Util.validateArgument(arg, name);
+            });
+        },
+
+        validateArrayProm: function (arg, name, options)
+        {
+            return Promise.resolve().then(function ()
+            {
+                self.Util.validateArray(arg, name, options);
+            });
         },
 
         isObject: function (prop)
