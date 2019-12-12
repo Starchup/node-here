@@ -101,55 +101,59 @@ var HERE = function (config)
     self.Address = {
         Geocode: function (address)
         {
-            self.Util.validateArgument(address, 'address');
-            self.Util.validateArgument(address.street, 'street');
-            self.Util.validateArgument(address.city, 'city');
-            self.Util.validateArgument(address.zip, 'zip');
-
-            var addressArray = [];
-            addressArray.push(address.street.split(' ').join('+'));
-            addressArray.push(address.city.split(' ').join('+'));
-            if (address.state) addressArray.push(address.state.split(' ').join('+'));
-            addressArray.push(address.zip.split(' ').join('+'));
-
-            var query = 'searchtext=' + addressArray.join('+');
-
-            return self.Request.CreateRequest('GET', GEO_API, null, 6.2, 'geocode', query).then(function (response)
+            return self.Util.validateArgumentProm(address, 'address').then(function ()
             {
-                var locationData, addressData;
+                return self.Util.validateArgumentProm(address.street, 'street');
+
+            }).then(function ()
+            {
+                return self.Util.validateArgumentProm(address.zip, 'zip');
+            }).then(function ()
+            {
+                var addressArray = [];
+                addressArray.push(address.street.split(' ').join('+'));
+                if (address.unit) addressArray.push('Unit+' + address.unit.split(' ').join('+'));
+                if (address.city) addressArray.push(address.city.split(' ').join('+'));
+                if (address.state) addressArray.push(address.state.split(' ').join('+'));
+                addressArray.push(address.zip.split(' ').join('+'));
+
+                var query = 'searchtext=' + addressArray.join('+') + '&additionaldata=PreserveUnitDesignators,true;';
+
+                return self.Request.CreateRequest('GET', GEO_API, null, 6.2, 'geocode', query);
+            }).then(function (response)
+            {
+
+                var data;
                 try
                 {
-                    locationData = response.View[0].Result[0].Location.DisplayPosition;
+                    data = locationData = response.View[0].Result[0].Location;
                 }
                 catch (e)
                 {
                     throw new Error('Address could not be geocoded');
                 }
-                try
-                {
-                    addressData = response.View[0].Result[0].Location.Address;
-                }
-                catch (e)
-                {
-                    throw new Error('Address could not be found for geocoding');
-                }
 
-                if (!locationData) throw new Error('Address could not be geocoded');
-                if (!addressData) throw new Error('Address could not be found for geocoding');
+                if (!data) throw new Error('Address could not be geocoded');
+
+                var unit = data.Address.AdditionalData.find(function (d)
+                {
+                    return d.key === 'Unit';
+                });
 
                 return {
                     location:
                     {
-                        lat: locationData.Latitude,
-                        lng: locationData.Longitude
+                        latitude: data.DisplayPosition.Latitude,
+                        longitude: data.DisplayPosition.Longitude
                     },
                     address:
                     {
-                        street: addressData.Street,
-                        city: addressData.City,
-                        state: addressData.State,
-                        zip: addressData.PostalCode,
-                        country: addressData.Country
+                        street: data.Address.HouseNumber + ' ' + data.Address.Street,
+                        unit: unit ? unit.value : null,
+                        city: data.Address.City,
+                        state: data.Address.State,
+                        zip: data.Address.PostalCode,
+                        country: data.Address.Country
                     }
                 };
             });

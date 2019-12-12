@@ -193,20 +193,141 @@ describe('CalculateTravelTimes', function ()
 describe('Geocoding Integration', function ()
 {
     var address = {
-        "street": "4629 North Broadway Street",
-        "unit": null,
+        "street": "4629 N Broadway St",
         "city": "Chicago",
         "state": "IL",
         "zip": "60640",
-        "country": "US",
-        "timezone": "America/Chicago"
+        "country": "USA"
     };
+
+    var addressWithOtherFormt = {
+        "street": "4629 North Broadway Str",
+        "city": "Chicago",
+        "state": "Illiois",
+        "zip": "60640",
+        "country": "US"
+    };
+
+    var location = {
+        latitude: 41.96628,
+        longitude: -87.6577
+    };
+
+    it('should throw error when missing street', function (done)
+    {
+        var addressMinimal = JSON.parse(JSON.stringify(address));
+        delete addressMinimal.street;
+
+        here.Address.Geocode(addressMinimal).then(function (res)
+        {
+            done(new Error('No error thrown'));
+        }).catch(function (err)
+        {
+            expect(err).to.be.an('error');
+            expect(err.message).to.equal('Required argument missing: street');
+
+            done();
+        });
+    });
+
+
+    it('should throw error when missing zip', function (done)
+    {
+        var addressMinimal = JSON.parse(JSON.stringify(address));
+        delete addressMinimal.zip;
+
+        here.Address.Geocode(addressMinimal).then(function (res)
+        {
+            done(new Error('No error thrown'));
+        }).catch(function (err)
+        {
+            expect(err).to.be.an('error');
+            expect(err.message).to.equal('Required argument missing: zip');
+
+            done();
+        });
+    });
 
     it('should geocode address', function (done)
     {
         here.Address.Geocode(address).then(function (res)
         {
             expect(res).to.be.an('object');
+            expect(res.address).to.be.an('object');
+            expect(res.location.latitude).to.equal(location.latitude);
+            expect(res.location.longitude).to.equal(location.longitude);
+
+            expect(res.address.street).to.equal(address.street);
+            expect(res.address.city).to.equal(address.city);
+            expect(res.address.state).to.equal(address.state);
+            expect(res.address.zip).to.equal(address.zip);
+            expect(res.address.country).to.equal(address.country);
+
+            done();
+        }).catch(done);
+    });
+
+    it('should geocode address with unit', function (done)
+    {
+        address.unit = '1W';
+        here.Address.Geocode(address).then(function (res)
+        {
+            expect(res).to.be.an('object');
+            expect(res.address).to.be.an('object');
+            expect(res.location.latitude).to.equal(location.latitude);
+            expect(res.location.longitude).to.equal(location.longitude);
+
+            expect(res.address.street).to.equal(address.street);
+            expect(res.address.city).to.equal(address.city);
+            expect(res.address.state).to.equal(address.state);
+            expect(res.address.zip).to.equal(address.zip);
+            expect(res.address.country).to.equal(address.country);
+            expect(res.address.unit).to.equal(address.unit);
+
+            done();
+        }).catch(done);
+    });
+
+    it('should geocode address with different street format', function (done)
+    {
+        here.Address.Geocode(addressWithOtherFormt).then(function (res)
+        {
+            expect(res).to.be.an('object');
+            expect(res.address).to.be.an('object');
+            expect(res.location.latitude).to.equal(location.latitude);
+            expect(res.location.longitude).to.equal(location.longitude);
+
+            expect(res.address.street).to.equal(address.street);
+            expect(res.address.city).to.equal(address.city);
+            expect(res.address.state).to.equal(address.state);
+            expect(res.address.zip).to.equal(address.zip);
+            expect(res.address.country).to.equal(address.country);
+
+            done();
+        }).catch(done);
+    });
+
+
+    it('should geocode address with different street format', function (done)
+    {
+        var addressMinimal = JSON.parse(JSON.stringify(address));
+        delete addressMinimal.city;
+        delete addressMinimal.state;
+        delete addressMinimal.country;
+
+        here.Address.Geocode(addressMinimal).then(function (res)
+        {
+
+            expect(res).to.be.an('object');
+            expect(res.address).to.be.an('object');
+            expect(res.location.latitude).to.equal(location.latitude);
+            expect(res.location.longitude).to.equal(location.longitude);
+
+            expect(res.address.street).to.equal(address.street);
+            expect(res.address.city).to.equal(address.city);
+            expect(res.address.state).to.equal(address.state);
+            expect(res.address.zip).to.equal(address.zip);
+            expect(res.address.country).to.equal(address.country);
 
             done();
         }).catch(done);
