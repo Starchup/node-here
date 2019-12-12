@@ -29,8 +29,6 @@ describe('Route Integration', function ()
     {
         here.Route.Calculate(origin, destination, mode, departure).then(function (res)
         {
-            console.log(JSON.stringify(res));
-
             expect(res).to.be.an('object');
             expect(res.travelTime).to.be.greaterThan(0);
             expect(res.distance).to.be.greaterThan(0);
@@ -60,8 +58,6 @@ describe('Route Integration', function ()
     {
         here.Route.Calculate(origin, destination, mode, departure, [waypoint1]).then(function (res)
         {
-            console.log(JSON.stringify(res));
-
             expect(res).to.be.an('object');
             expect(res.travelTime).to.be.greaterThan(0);
             expect(res.distance).to.be.greaterThan(0);
