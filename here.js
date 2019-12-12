@@ -5,6 +5,7 @@ var request = require('request-promise');
 
 var ROUTE_API = 'https://route.api.here.com';
 var GEO_API = 'https://geocoder.api.here.com';
+var MATRIX_API = 'https://matrix.route.api.here.com';
 
 /**
  * Constructor
@@ -158,6 +159,36 @@ var HERE = function (config)
                 };
             });
         }
+    };
+
+    self.Points = {
+        CalculateTravelTimes: function (origins, destinations, mode, departure)
+        {
+            self.Util.validateArgument(origins, 'origins');
+            self.Util.validateArgument(destinations, 'destinations');
+            self.Util.validateArgument(mode, 'mode');
+
+            if (!departure || departure === undefined) departure = new Date();
+            else if (!self.Util.isDate(departure)) throw new Error('Departure must be a date');
+
+            var query = 'mode=' + mode;
+            query += '&summaryAttributes=traveltime,distance';
+            query += '&departure=' + departure.toISOString();
+
+            origins.forEach(function (waypoint, idx)
+            {
+                query += '&start' + String(idx) + '=geo!' + self.Util.coordinatesString(waypoint);
+            });
+            destinations.forEach(function (waypoint, idx)
+            {
+                query += '&destination' + String(idx) + '=geo!' + self.Util.coordinatesString(waypoint);
+            });
+
+            return self.Request.CreateRequest('GET', MATRIX_API, 'routing', 7.2, 'calculatematrix', query).then(function (response)
+            {
+                return response.matrixEntry;
+            });
+        },
     };
 
     self.Util = {
