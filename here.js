@@ -54,25 +54,51 @@ var HERE = function (config)
             else if (!self.Util.isDate(departure)) throw new Error('Departure must be a date');
 
             var query = 'mode=' + mode;
+            query += '&routeAttributes=summary,legs&legAttributes=length,travelTime,summary';
             query += '&departure=' + departure.toISOString();
-            query += '&waypoint0=geo!' + self.Util.coordinatesString(origin);
 
-            if (waypoints && waypoints.length)
+            var originLabel = (origin.key ? origin.key : 'origin');
+            query += '&waypoint0=geo!' + self.Util.coordinatesString(origin) + ';;' + originLabel;
+
+            if (waypoints && waypoints.length) waypoints.forEach(function (waypoint, idx)
             {
-                waypoints.forEach(function (waypoint, idx)
-                {
-                    query += '&waypoint' + String(idx + 1) + '=geo!' + self.Util.coordinatesString(waypoint);
-                });
-                query += '&waypoint' + String(waypoints.length + 1) + '=geo!' + self.Util.coordinatesString(destination);
-            }
-            else
-            {
-                query += '&waypoint1=geo!' + self.Util.coordinatesString(destination);
-            }
+                query += '&waypoint' + String(idx + 1) + '=geo!';
+                if (waypoint.stopOverDuration) query += 'stopOver,' + waypoint.stopOverDuration + '!';
+                query += self.Util.coordinatesString(waypoint) + ';;' + (waypoint.key ? waypoint.key : idx);
+            });
+
+            var idx = String((waypoints ? waypoints.length : 0) + 1);
+            var destinationLabel = (destination.key ? destination.key : 'destination');
+            query += '&waypoint' + idx + '=geo!' + self.Util.coordinatesString(destination) + ';;' + destinationLabel;
 
             return self.Request.CreateRequest('GET', ROUTE_API, 'routing', 7.2, 'calculateroute', query).then(function (response)
             {
-                return response.route[0];
+                var route = response.route[0];
+
+                return {
+                    travelTime: route.summary.travelTime,
+                    distance: route.summary.distance,
+                    startTime: departure.getTime() / 1000,
+                    legs: route.leg.map(function (l)
+                    {
+                        return {
+                            start:
+                            {
+                                key: l.start.userLabel,
+                                latitude: l.start.mappedPosition.latitude,
+                                longitude: l.start.mappedPosition.longitude
+                            },
+                            end:
+                            {
+                                key: l.end.userLabel,
+                                latitude: l.end.mappedPosition.latitude,
+                                longitude: l.end.mappedPosition.longitude
+                            },
+                            travelTime: l.travelTime,
+                            distance: l.length
+                        };
+                    })
+                };
             });
         },
     };
