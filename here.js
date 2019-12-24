@@ -5,6 +5,8 @@ var request = require('request-promise');
 
 var ROUTE_API = 'https://route.api.here.com';
 var GEO_API = 'https://geocoder.api.here.com';
+var OPTIMIZE_API = 'https://wse.api.here.com'; // v2 findsequence
+var MATRIX_API = 'https://matrix.route.api.here.com';
 
 /**
  * Constructor
@@ -160,6 +162,59 @@ var HERE = function (config)
         }
     };
 
+    self.Points = {
+        CalculateTravelTimes: function (origins, destinations, departureTime, disableTraffic)
+        {
+            var originsByIndex = {};
+            var destinationsByIndex = {};
+
+            return self.Util.validateArrayProm(origins, 'origins').then(function ()
+            {
+                return self.Util.validateArrayProm(destinations, 'destinations');
+            }).then(function ()
+            {
+                if (!departureTime || departureTime === undefined) departureTime = new Date();
+                else if (!self.Util.isDate(departureTime)) throw new Error('Departure must be a date');
+
+
+                var query = 'mode=fastest;car;traffic:' + (disableTraffic ? 'disabled' : 'enabled');
+                query += '&summaryAttributes=traveltime,distance&matrixAttributes=summary';
+                query += '&departure=' + departureTime.toISOString();
+
+                origins.forEach(function (waypoint, idx)
+                {
+                    var label = waypoint.key ? waypoint.key : idx;
+                    var coordinates = self.Util.coordinatesString(waypoint);
+                    query += '&start' + String(idx) + '=geo!' + coordinates;
+                    originsByIndex[idx] = label;
+                });
+                destinations.forEach(function (waypoint, idx)
+                {
+                    var label = waypoint.key ? waypoint.key : idx;
+                    var coordinates = self.Util.coordinatesString(waypoint);
+                    query += '&destination' + String(idx) + '=geo!' + coordinates;
+                    destinationsByIndex[idx] = label;
+                });
+
+                return self.Request.CreateRequest('GET', MATRIX_API, 'routing', 7.2, 'calculatematrix', query);
+            }).then(function (response)
+            {
+                return response.matrixEntry.map(function (l)
+                {
+                    l.startLabel = originsByIndex[l.startIndex];
+                    l.destinationLabel = destinationsByIndex[l.destinationIndex];
+
+                    return {
+                        start: l.startLabel,
+                        end: l.destinationLabel,
+                        travelTime: l.summary.travelTime,
+                        distance: l.summary.distance
+                    };
+                });
+            });
+        }
+    };
+
     self.Util = {
         validateArgument: function (arg, name)
         {
@@ -177,7 +232,7 @@ var HERE = function (config)
             {
                 throw new Error('Required argument missing data: ' + name);
             }
-            if (options.min && arg.length < options.min)
+            if (options && options.min && arg.length < options.min)
             {
                 throw new Error('Argument missing data (' + options.min + ' required, ' + arg.length + ' passed): ' + name);
             }

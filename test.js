@@ -190,6 +190,49 @@ describe('CalculateTravelTimes', function ()
     });
 });
 
+describe('Matrix Integration', function ()
+{
+    var origin1 = {
+        lat: 41.2800,
+        lng: -96.0042,
+        key: 'business'
+    };
+    var origin2 = {
+        lat: 41.2800,
+        lng: -96.0050,
+        key: 'business'
+    };
+    var destination1 = {
+        lat: 41.2939,
+        lng: -96.0206,
+        key: 'my home'
+    };
+    var destination2 = {
+        lat: 41.2799,
+        lng: -96.0164,
+        key: 'my friend'
+    };
+
+    it('should get the closest destiation to points', function (done)
+    {
+        here.Points.CalculateTravelTimes([origin1, origin2], [destination1, destination2]).then(function (res)
+        {
+            expect(res).to.be.an('array');
+            expect(res.length).to.equal(4);
+            res.forEach(function (r, idx)
+            {
+                expect(res[idx]).to.be.an('object');
+                expect(res[idx].start).to.be.an('string');
+                expect(res[idx].end).to.be.an('string');
+                expect(res[idx].travelTime).to.be.an('number');
+                expect(res[idx].distance).to.be.an('number');
+            });
+
+            done();
+        }).catch(done);
+    });
+});
+
 describe('Geocoding Integration', function ()
 {
     var address = {
