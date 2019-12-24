@@ -376,3 +376,51 @@ describe('Geocoding Integration', function ()
         }).catch(done);
     });
 });
+
+describe('Waypoints Integration', function ()
+{
+    var origin = {
+        lat: 41.2800,
+        lng: -96.0042,
+        key: 'business'
+    };
+    var destination = {
+        lat: 41.2939,
+        lng: -96.0206,
+        key: 'my-home'
+    };
+    var waypoint1 = {
+        lat: 41.2800,
+        lng: -96.0050,
+        key: 'shop'
+    };
+    var waypoint2 = {
+        lat: 41.2799,
+        lng: -96.0164,
+        key: 'my-friend'
+    };
+
+    it('should get the closest destiation to points', function (done)
+    {
+        here.Route.Optimize(origin, destination, [waypoint1, waypoint2]).then(function (res)
+        {
+            expect(res).to.be.an('object');
+            expect(res.time).to.be.greaterThan(1);
+            expect(res.distance).to.be.greaterThan(1);
+            expect(res.startTime).to.be.greaterThan(1);
+
+            expect(res.waypoints).to.be.an('array');
+            expect(res.waypoints.length).to.equal(4);
+            res.waypoints.forEach(function (r)
+            {
+                expect(r).to.be.an('object');
+                expect(r.key).to.be.an('string');
+                expect(r.latitude).to.be.a('number');
+                expect(r.longitude).to.be.a('number');
+                expect(r.sequence).to.be.a('number');
+            });
+
+            done();
+        }).catch(done);
+    });
+});
