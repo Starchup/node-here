@@ -38,6 +38,7 @@ var HERE = function (config)
 
                 if (response && response.response) return response.response;
                 if (response && response.Response) return response.Response;
+                if (response && response.results) return response.results;
 
                 throw new Error('No response');
             });
@@ -93,6 +94,65 @@ var HERE = function (config)
                             },
                             travelTime: l.travelTime,
                             distance: l.length
+                        };
+                    })
+                };
+            });
+        },
+        Optimize: function (start, end, waypoints, departureTime, disableTraffic)
+        {
+            return self.Util.validateArgumentProm(start, 'start').then(function ()
+            {
+                return self.Util.validateArgumentProm(end, 'end');
+            }).then(function ()
+            {
+                return self.Util.validateArrayProm(waypoints, 'waypoints',
+                {
+                    min: 1
+                });
+            }).then(function ()
+            {
+                if (!departureTime || departureTime === undefined) departureTime = new Date();
+                else if (!self.Util.isDate(departureTime)) throw new Error('Departure must be a date');
+
+                var departure = departureTime.toISOString();
+
+                var query = 'mode=fastest;car;traffic:' + (disableTraffic ? 'disabled' : 'enabled');
+                query += '&departure=' + departure.substring(0, departure.length - 5) + 'Z';
+
+                var label = start.key ? start.key : idx;
+                var coordinates = self.Util.coordinatesString(start);
+                query += '&start=' + label + ';' + coordinates;
+
+                waypoints.forEach(function (stop, idx)
+                {
+                    var label = stop.key ? stop.key : idx;
+                    var coordinates = self.Util.coordinatesString(stop);
+
+                    query += '&destination' + String(idx + 1) + '=' + label + ';' + coordinates;
+                });
+
+                label = end.key ? end.key : idx;
+                coordinates = self.Util.coordinatesString(end);
+                query += '&end=' + label + ';' + coordinates;
+
+                return self.Request.CreateRequest('GET', OPTIMIZE_API, null, 2, 'findsequence', query);
+            }).then(function (response)
+            {
+                var route = response[0];
+
+                return {
+                    time: route.time,
+                    distance: route.distance,
+                    startTime: departureTime.getTime() / 1000,
+                    waypoints: route.waypoints.map(function (w)
+                    {
+                        return {
+                            key: w.id,
+                            latitude: w.lat,
+                            longitude: w.lng,
+                            sequence: w.sequence,
+                            estimatedDeparture: w.estimatedDeparture
                         };
                     })
                 };
