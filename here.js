@@ -5,6 +5,7 @@ var request = require('request-promise');
 
 var ROUTE_API = 'https://route.api.here.com';
 var GEO_API = 'https://geocoder.api.here.com';
+var OPTIMIZE_API = 'https://wse.api.here.com'; // v2 findsequence
 var MATRIX_API = 'https://matrix.route.api.here.com';
 
 /**
@@ -162,33 +163,56 @@ var HERE = function (config)
     };
 
     self.Points = {
-        CalculateTravelTimes: function (origins, destinations, mode, departure)
+        CalculateTravelTimes: function (origins, destinations, departureTime, disableTraffic)
         {
-            self.Util.validateArgument(origins, 'origins');
-            self.Util.validateArgument(destinations, 'destinations');
-            self.Util.validateArgument(mode, 'mode');
+            var originsByIndex = {};
+            var destinationsByIndex = {};
 
-            if (!departure || departure === undefined) departure = new Date();
-            else if (!self.Util.isDate(departure)) throw new Error('Departure must be a date');
-
-            var query = 'mode=' + mode;
-            query += '&summaryAttributes=traveltime,distance';
-            query += '&departure=' + departure.toISOString();
-
-            origins.forEach(function (waypoint, idx)
+            return self.Util.validateArrayProm(origins, 'origins').then(function ()
             {
-                query += '&start' + String(idx) + '=geo!' + self.Util.coordinatesString(waypoint);
-            });
-            destinations.forEach(function (waypoint, idx)
+                return self.Util.validateArrayProm(destinations, 'destinations');
+            }).then(function ()
             {
-                query += '&destination' + String(idx) + '=geo!' + self.Util.coordinatesString(waypoint);
-            });
+                if (!departureTime || departureTime === undefined) departureTime = new Date();
+                else if (!self.Util.isDate(departureTime)) throw new Error('Departure must be a date');
 
-            return self.Request.CreateRequest('GET', MATRIX_API, 'routing', 7.2, 'calculatematrix', query).then(function (response)
+
+                var query = 'mode=fastest;car;traffic:' + (disableTraffic ? 'disabled' : 'enabled');
+                query += '&summaryAttributes=traveltime,distance&matrixAttributes=summary';
+                query += '&departure=' + departureTime.toISOString();
+
+                origins.forEach(function (waypoint, idx)
+                {
+                    var label = waypoint.key ? waypoint.key : idx;
+                    var coordinates = self.Util.coordinatesString(waypoint);
+                    query += '&start' + String(idx) + '=geo!' + coordinates;
+                    originsByIndex[idx] = label;
+                });
+                destinations.forEach(function (waypoint, idx)
+                {
+                    var label = waypoint.key ? waypoint.key : idx;
+                    var coordinates = self.Util.coordinatesString(waypoint);
+                    query += '&destination' + String(idx) + '=geo!' + coordinates;
+                    destinationsByIndex[idx] = label;
+                });
+
+                return self.Request.CreateRequest('GET', MATRIX_API, 'routing', 7.2, 'calculatematrix', query);
+            }).then(function (response)
             {
-                return response.matrixEntry;
+                return response.matrixEntry.map(function (l)
+                {
+                    l.startLabel = originsByIndex[l.startIndex];
+                    l.destinationLabel = destinationsByIndex[l.destinationIndex];
+
+                    return {
+                        start: l.startLabel,
+                        end: l.destinationLabel,
+                        travelTime: l.summary.travelTime,
+                        distance: l.summary.distance
+                    };
+                });
             });
-        },
+        }
     };
 
     self.Util = {
@@ -208,7 +232,7 @@ var HERE = function (config)
             {
                 throw new Error('Required argument missing data: ' + name);
             }
-            if (options.min && arg.length < options.min)
+            if (options && options.min && arg.length < options.min)
             {
                 throw new Error('Argument missing data (' + options.min + ' required, ' + arg.length + ' passed): ' + name);
             }
