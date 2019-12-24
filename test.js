@@ -219,13 +219,13 @@ describe('Matrix Integration', function ()
         {
             expect(res).to.be.an('array');
             expect(res.length).to.equal(4);
-            res.forEach(function (r, idx)
+            res.forEach(function (r)
             {
-                expect(res[idx]).to.be.an('object');
-                expect(res[idx].start).to.be.an('string');
-                expect(res[idx].end).to.be.an('string');
-                expect(res[idx].travelTime).to.be.an('number');
-                expect(res[idx].distance).to.be.an('number');
+                expect(r).to.be.an('object');
+                expect(r.start).to.be.an('string');
+                expect(r.end).to.be.an('string');
+                expect(r.travelTime).to.be.an('number');
+                expect(r.distance).to.be.an('number');
             });
 
             done();
