@@ -140,7 +140,6 @@ var HERE = function (config)
             }).then(function (response)
             {
                 var route = response[0];
-
                 return {
                     time: route.time,
                     distance: route.distance,
@@ -328,10 +327,10 @@ var HERE = function (config)
         {
             if (!this.isObject(coordinates)) throw new Error('Coordinates passed are not valid');
 
-            this.validateArgument(coordinates.lat, 'Coordinates is missing lat attribute');
-            this.validateArgument(coordinates.lng, 'Coordinates is missing lng attribute');
+            this.validateArgument(coordinates.lat || coordinates.latitude, 'Coordinates is missing lat attribute');
+            this.validateArgument(coordinates.lng || coordinates.longitude, 'Coordinates is missing lng attribute');
 
-            return coordinates.lat + ',' + coordinates.lng;
+            return (coordinates.lat || coordinates.latitude) + ',' + (coordinates.lng || coordinates.longitude);
         },
 
         buildUrl: function (resource, version, method, query)
