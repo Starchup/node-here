@@ -1,6 +1,6 @@
 {
     "name": "node-here",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "main": "./here",
     "description": "Here API wrapper for Node.js",
     "author":
@@ -23,19 +23,19 @@
     },
     "dependencies":
     {
-        "request": "2.81.0",
-        "request-promise": "4.1.1"
+        "request": "2.88.2",
+        "request-promise": "4.2.5"
     },
     "devDependencies":
     {
-        "mocha": "3.2.0",
-        "chai": "3.5.0",
-        "jshint": "2.9.4"
+        "mocha": "7.1.2",
+        "chai": "4.2.0",
+        "jshint": "2.11.0"
     },
     "scripts":
     {
         "pretest": "jshint .",
-        "test": "mocha"
+        "test": "mocha --exit"
     },
     "readmeFilename": "README.md",
     "bugs":
